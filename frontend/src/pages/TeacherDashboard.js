@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Typography, Card, CardContent, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Stack, Paper, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
+import { Container, Box, Typography, Card, CardContent, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Stack, Paper, List, ListItem, ListItemText, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import axios from 'axios';
 
 export default function TeacherDashboard() {
@@ -49,20 +49,51 @@ export default function TeacherDashboard() {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6">Teacher Profile</Typography>
-              <Typography>Name: {profile.name}</Typography>
-              <Typography>Email: {profile.email}</Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle2">Departments:</Typography>
-              {profile.departments.map(dep => <Chip key={dep.id} label={dep.name} sx={{ mr: 1, mb: 1 }} />)}
-              <Typography variant="subtitle2" sx={{ mt: 1 }}>Semesters:</Typography>
-              {profile.semesters.map(sem => <Chip key={sem.id} label={sem.name} sx={{ mr: 1, mb: 1 }} />)}
-              <Typography variant="subtitle2" sx={{ mt: 1 }}>Subjects:</Typography>
-              {profile.subjects.map(sub => <Chip key={sub.id} label={sub.name} sx={{ mr: 1, mb: 1 }} />)}
+              <TableContainer component={Paper} sx={{ mt: 2 }}>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell variant="head">Name</TableCell>
+                      <TableCell>{profile.name}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head">Email</TableCell>
+                      <TableCell>{profile.email}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head">Departments</TableCell>
+                      <TableCell>
+                        {profile.departments.map(dep => (
+                          <Chip key={dep.id} label={dep.name} sx={{ mr: 1, mb: 1 }} />
+                        ))}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head">Semesters</TableCell>
+                      <TableCell>
+                        {profile.semesters.map(sem => (
+                          <Chip key={sem.id} label={sem.name} sx={{ mr: 1, mb: 1 }} />
+                        ))}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head">Subjects</TableCell>
+                      <TableCell>
+                        {profile.subjects.map(sub => (
+                          <Chip key={sub.id} label={sub.name} sx={{ mr: 1, mb: 1 }} />
+                        ))}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         )}
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Stack direction="row" spacing={2} alignItems="center">
+        <Typography variant="h6" gutterBottom>Class Notes</Typography>
+        
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.default', boxShadow: 1, borderRadius: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
             <FormControl sx={{ minWidth: 180 }}>
               <InputLabel>Department</InputLabel>
               <Select
@@ -102,27 +133,30 @@ export default function TeacherDashboard() {
             </FormControl>
           </Stack>
         </Paper>
-        <Typography variant="h6" gutterBottom>Selected Filters</Typography>
-        <Typography>Department: {departments.find(d => d.id === departmentId)?.name || '-'}</Typography>
-        <Typography>Semester: {semesters.find(s => s.id === semesterId)?.name || '-'}</Typography>
-        <Typography>Subject: {subjects.find(s => s.id === subjectId)?.name || '-'}</Typography>
-        <Typography variant="h6" gutterBottom>Filtered Notes</Typography>
-        {loading ? (
-          <CircularProgress />
-        ) : (
-          <List>
-            {notes.map(note => (
-              <ListItem key={note.id} divider>
-                <ListItemText
-                  primary={note.title}
-                  secondary={note.filePath}
-                />
-                <a href={note.filePath} download target="_blank" rel="noopener noreferrer">Download</a>
-              </ListItem>
-            ))}
-            {!notes.length && <ListItem><ListItemText primary="No notes found for this selection." /></ListItem>}
-          </List>
-        )}
+
+        <Paper sx={{ p: 2, mb: 3, boxShadow: 3, borderRadius: 2 }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight={100}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <List>
+              {notes.map(note => (
+                <ListItem key={note.id} divider secondaryAction={
+                  <a href={note.filePath} download target="_blank" rel="noopener noreferrer">
+                    <Chip label="Download" color="primary" clickable />
+                  </a>
+                }>
+                  <ListItemText
+                    primary={<Typography fontWeight={600}>{note.title}</Typography>}
+                    secondary={<Typography variant="body2" color="text.secondary">{note.filePath}</Typography>}
+                  />
+                </ListItem>
+              ))}
+              {!notes.length && <ListItem><ListItemText primary="No class notes found for this selection." /></ListItem>}
+            </List>
+          )}
+        </Paper>
       </Box>
     </Container>
   );
