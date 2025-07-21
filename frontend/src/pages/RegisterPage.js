@@ -152,11 +152,17 @@ export default function RegisterPage() {
             <InputLabel>Department</InputLabel>
             <Select
               multiple={role === 'teacher'}
-              value={departmentIds}
-              onChange={e => setDepartmentIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+              value={role === 'teacher' ? departmentIds : departmentIds[0] || ''}
+              onChange={e => {
+                if (role === 'teacher') {
+                  setDepartmentIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
+                } else {
+                  setDepartmentIds([e.target.value]);
+                }
+              }}
               input={<OutlinedInput label="Department" />}
               renderValue={selected => {
-                const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
                 return departments.filter(d => arr.includes(d.value)).map(d => d.label).join(', ');
               }}
             >
@@ -172,11 +178,17 @@ export default function RegisterPage() {
             <InputLabel>Semester</InputLabel>
             <Select
               multiple={role === 'teacher'}
-              value={semesterIds}
-              onChange={e => setSemesterIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+              value={role === 'teacher' ? semesterIds : semesterIds[0] || ''}
+              onChange={e => {
+                if (role === 'teacher') {
+                  setSemesterIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
+                } else {
+                  setSemesterIds([e.target.value]);
+                }
+              }}
               input={<OutlinedInput label="Semester" />}
               renderValue={selected => {
-                const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
                 return semesters.filter(s => arr.includes(s.value)).map(s => s.label).join(', ');
               }}
             >

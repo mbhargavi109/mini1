@@ -24,6 +24,8 @@ export default function TeacherDashboard() {
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState(false);
   const teacherId = JSON.parse(localStorage.getItem('user'))?.id || 1;
+  const user = JSON.parse(localStorage.getItem('user'));
+  const isTeacher = user?.role === 'teacher';
 
   useEffect(() => {
     axios.get(`/teacher/${teacherId}/profile`).then(res => setProfile(res.data));
@@ -156,6 +158,7 @@ export default function TeacherDashboard() {
               fullWidth
               value={editEmail}
               onChange={e => setEditEmail(e.target.value)}
+              disabled
             />
             <FormControl fullWidth margin="normal">
               <InputLabel>Departments</InputLabel>
@@ -249,9 +252,10 @@ export default function TeacherDashboard() {
             <FormControl sx={{ minWidth: 180 }}>
               <InputLabel>Department</InputLabel>
               <Select
-                value={departmentId}
+                value={isTeacher ? departmentId : departmentId || ''}
                 label="Department"
-                onChange={e => setDepartmentId(e.target.value)}
+                onChange={e => setDepartmentId(isTeacher ? e.target.value : e.target.value)}
+                multiple={false}
               >
                 {departments.map(dep => (
                   <MenuItem key={dep.id} value={dep.id}>{dep.name}</MenuItem>
@@ -261,9 +265,10 @@ export default function TeacherDashboard() {
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Semester</InputLabel>
               <Select
-                value={semesterId}
+                value={isTeacher ? semesterId : semesterId || ''}
                 label="Semester"
-                onChange={e => setSemesterId(e.target.value)}
+                onChange={e => setSemesterId(isTeacher ? e.target.value : e.target.value)}
+                multiple={false}
               >
                 {semesters.map(sem => (
                   <MenuItem key={sem.id} value={sem.id}>{sem.name}</MenuItem>

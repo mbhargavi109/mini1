@@ -82,6 +82,61 @@ router.patch('/teacher/:id/profile', async (req, res) => {
   }
 });
 
+// GET /student/:id/profile
+router.get('/student/:id/profile', async (req, res) => {
+  try {
+    const student = await User.findByPk(req.params.id);
+    if (!student || student.role !== 'student') return res.status(404).json({ error: 'Student not found' });
+    const departmentId = Array.isArray(student.departmentIds) ? student.departmentIds[0] : student.departmentIds;
+    const semesterId = Array.isArray(student.semesterIds) ? student.semesterIds[0] : student.semesterIds;
+    const department = departmentId ? await Department.findByPk(departmentId) : null;
+    const semester = semesterId ? await Semester.findByPk(semesterId) : null;
+    let subjects = [];
+    if (departmentId && semesterId) {
+      subjects = await Subject.findAll({ where: { DepartmentId: departmentId, SemesterId: semesterId } });
+    }
+    res.json({
+      name: student.name,
+      email: student.email,
+      department,
+      semester,
+      subjects,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /student/:id/profile
+router.patch('/student/:id/profile', async (req, res) => {
+  try {
+    const student = await User.findByPk(req.params.id);
+    if (!student || student.role !== 'student') return res.status(404).json({ error: 'Student not found' });
+    const { name, departmentId, semesterId, subjectIds } = req.body;
+    if (name !== undefined) student.name = name;
+    if (departmentId !== undefined) student.departmentIds = [departmentId];
+    if (semesterId !== undefined) student.semesterIds = [semesterId];
+    if (subjectIds !== undefined) student.subjectIds = subjectIds;
+    await student.save();
+    // Return updated profile
+    const department = departmentId ? await Department.findByPk(departmentId) : null;
+    const semester = semesterId ? await Semester.findByPk(semesterId) : null;
+    let subjects = [];
+    if (departmentId && semesterId) {
+      subjects = await Subject.findAll({ where: { DepartmentId: departmentId, SemesterId: semesterId } });
+    }
+    res.json({
+      name: student.name,
+      email: student.email,
+      department,
+      semester,
+      subjects,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /subjects (optionally filtered by departmentId and semesterId)
 router.get('/subjects', async (req, res) => {
   try {

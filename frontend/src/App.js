@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import TeacherDashboard from './pages/TeacherDashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
+import StudentDashboard from './pages/StudentDashboard';
 
 const theme = createTheme();
 
@@ -51,6 +52,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </ThemeProvider>
