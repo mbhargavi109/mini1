@@ -1,10 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, createTheme, AppBar, Toolbar, Typography } from '@mui/material';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, createTheme, AppBar, Toolbar, Typography, Button, Avatar } from '@mui/material';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import axios from 'axios';
 import TeacherDashboard from './pages/TeacherDashboard';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const theme = createTheme();
 
@@ -17,6 +18,15 @@ axios.interceptors.response.use(
 );
 
 function App() {
+  const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem('token');
+  const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -25,16 +35,24 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             EduForge
           </Typography>
+          {isLoggedIn && (
+            <>
+              <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
+                {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
+              </Avatar>
+              <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
+          )}
         </Toolbar>
       </AppBar>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
     </ThemeProvider>
   );
 }
