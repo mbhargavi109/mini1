@@ -3,6 +3,27 @@ const { Department, Semester, Subject, User } = require('../models');
 const { Op } = require('sequelize');
 const router = express.Router();
 
+// GET /departments
+router.get('/departments', async (req, res) => {
+  try {
+    console.log('departments route hit');
+    const departments = await Department.findAll();
+    res.json(departments || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /semesters
+router.get('/semesters', async (req, res) => {
+  try {
+    const semesters = await Semester.findAll();
+    res.json(semesters || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /teacher/:id/profile
 router.get('/teacher/:id/profile', async (req, res) => {
   try {
@@ -25,6 +46,20 @@ router.get('/teacher/:id/profile', async (req, res) => {
       semesters,
       subjects,
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /subjects (optionally filtered by departmentId and semesterId)
+router.get('/subjects', async (req, res) => {
+  try {
+    const { departmentId, semesterId } = req.query;
+    const where = {};
+    if (departmentId) where.DepartmentId = Number(departmentId);
+    if (semesterId) where.SemesterId = Number(semesterId);
+    const subjects = await Subject.findAll({ where });
+    res.json(subjects || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

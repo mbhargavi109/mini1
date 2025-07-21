@@ -24,6 +24,21 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('student', 'teacher'),
       allowNull: false,
     },
+    departmentIds: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    semesterIds: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    subjectIds: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
   });
   return User;
 }; 

@@ -1,9 +1,9 @@
+import axios from 'axios';
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, createTheme, AppBar, Toolbar, Typography, Button, Avatar } from '@mui/material';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import axios from 'axios';
 import TeacherDashboard from './pages/TeacherDashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
 

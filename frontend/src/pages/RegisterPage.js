@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Box, Typography, TextField, Button, MenuItem, Alert, Link, Select, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -25,9 +25,57 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [departmentIds, setDepartmentIds] = useState([]);
   const [semesterIds, setSemesterIds] = useState([]);
+  const [subjectIds, setSubjectIds] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch subjects when departmentIds and semesterIds are selected
+    const fetchSubjects = async () => {
+      let dep = role === 'teacher' ? departmentIds : departmentIds[0] ? [departmentIds[0]] : [];
+      let sem = role === 'teacher' ? semesterIds : semesterIds[0] ? [semesterIds[0]] : [];
+      if (dep.length && sem.length) {
+        try {
+          let allSubjects = [];
+          if (role === 'teacher') {
+            // Fetch for all combinations of selected departments and semesters
+            for (let d of dep) {
+              for (let s of sem) {
+                const res = await axios.get('/subjects', {
+                  params: { departmentId: d, semesterId: s }
+                });
+                allSubjects = allSubjects.concat(res.data);
+              }
+            }
+            // Remove duplicates by subject id
+            const uniqueSubjects = [];
+            const seen = new Set();
+            for (const subj of allSubjects) {
+              if (!seen.has(subj.id)) {
+                uniqueSubjects.push(subj);
+                seen.add(subj.id);
+              }
+            }
+            setSubjects(uniqueSubjects);
+          } else {
+            // Student: only one department and semester
+            const res = await axios.get('/subjects', {
+              params: { departmentId: dep[0], semesterId: sem[0] }
+            });
+            setSubjects(res.data);
+          }
+        } catch (err) {
+          setSubjects([]);
+        }
+      } else {
+        setSubjects([]);
+      }
+      setSubjectIds([]);
+    };
+    fetchSubjects();
+  }, [departmentIds, semesterIds, role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,10 +89,15 @@ export default function RegisterPage() {
         role,
         departmentIds: role === 'teacher' ? departmentIds : departmentIds[0] ? [departmentIds[0]] : [],
         semesterIds: role === 'teacher' ? semesterIds : semesterIds[0] ? [semesterIds[0]] : [],
+        subjectIds: role === 'teacher' ? subjectIds : subjectIds[0] ? [subjectIds[0]] : [],
       };
       await axios.post('/auth/register', payload);
       setSuccess('Registration successful! You can now login.');
-      setTimeout(() => navigate('/login'), 1500);
+      if (role === 'teacher') {
+        setTimeout(() => navigate('/teacher-dashboard'), 1500);
+      } else {
+        setTimeout(() => navigate('/login'), 1500);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }
@@ -131,6 +184,27 @@ export default function RegisterPage() {
                 <MenuItem key={option.value} value={option.value}>
                   {role === 'teacher' && <Checkbox checked={semesterIds.indexOf(option.value) > -1} />}
                   <ListItemText primary={option.label} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Subject</InputLabel>
+            <Select
+              multiple={role === 'teacher'}
+              value={subjectIds}
+              onChange={e => setSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+              input={<OutlinedInput label="Subject" />}
+              renderValue={selected => {
+                const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                return subjects.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
+              }}
+              disabled={subjects.length === 0}
+            >
+              {subjects.map(option => (
+                <MenuItem key={option.id} value={option.id}>
+                  {role === 'teacher' && <Checkbox checked={subjectIds.indexOf(option.id) > -1} />}
+                  <ListItemText primary={option.name} />
                 </MenuItem>
               ))}
             </Select>
