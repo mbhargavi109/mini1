@@ -20,14 +20,14 @@ export default function LoginPage() {
     setError('');
     try {
       const res = await axios.post('/auth/login', { email, password });
-      // Optionally check role here if needed
-      if (res.data.user.role !== role) {
-        setError('Role mismatch.');
-        return;
-      }
-      // Save token, redirect, etc.
       localStorage.setItem('token', res.data.token);
-      navigate('/'); // Redirect to dashboard (to be implemented)
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      
+      if (res.data.user.role === 'teacher') {
+        navigate('/teacher-dashboard');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

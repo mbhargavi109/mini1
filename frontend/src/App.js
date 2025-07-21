@@ -4,6 +4,7 @@ import { ThemeProvider, CssBaseline, createTheme, AppBar, Toolbar, Typography } 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import axios from 'axios';
+import TeacherDashboard from './pages/TeacherDashboard';
 
 const theme = createTheme();
 
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </Router>
