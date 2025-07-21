@@ -51,6 +51,37 @@ router.get('/teacher/:id/profile', async (req, res) => {
   }
 });
 
+// PATCH /teacher/:id/profile
+router.patch('/teacher/:id/profile', async (req, res) => {
+  try {
+    const teacher = await User.findByPk(req.params.id);
+    if (!teacher || teacher.role !== 'teacher') return res.status(404).json({ error: 'Teacher not found' });
+    const { name, email, departmentIds, semesterIds, subjectIds } = req.body;
+    if (name !== undefined) teacher.name = name;
+    if (email !== undefined) teacher.email = email;
+    if (departmentIds !== undefined) teacher.departmentIds = departmentIds;
+    if (semesterIds !== undefined) teacher.semesterIds = semesterIds;
+    if (subjectIds !== undefined) teacher.subjectIds = subjectIds;
+    await teacher.save();
+    // Return updated profile in same format as GET
+    const departments = Array.isArray(teacher.departmentIds) && teacher.departmentIds.length ? await Department.findAll({ where: { id: { [Op.in]: teacher.departmentIds } } }) : [];
+    const semesters = Array.isArray(teacher.semesterIds) && teacher.semesterIds.length ? await Semester.findAll({ where: { id: { [Op.in]: teacher.semesterIds } } }) : [];
+    let subjects = [];
+    if (teacher.departmentIds && teacher.semesterIds && teacher.departmentIds.length && teacher.semesterIds.length) {
+      subjects = await Subject.findAll({ where: { DepartmentId: { [Op.in]: teacher.departmentIds }, SemesterId: { [Op.in]: teacher.semesterIds } } });
+    }
+    res.json({
+      name: teacher.name,
+      email: teacher.email,
+      departments,
+      semesters,
+      subjects,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /subjects (optionally filtered by departmentId and semesterId)
 router.get('/subjects', async (req, res) => {
   try {
