@@ -29,14 +29,14 @@ router.get('/teacher/:id/profile', async (req, res) => {
   try {
     const teacher = await User.findByPk(req.params.id);
     if (!teacher || teacher.role !== 'teacher') return res.status(404).json({ error: 'Teacher not found' });
-    // Assume departmentIds and semesterIds are stored as arrays on the user
     const departmentIds = Array.isArray(teacher.departmentIds) ? teacher.departmentIds : [];
     const semesterIds = Array.isArray(teacher.semesterIds) ? teacher.semesterIds : [];
     const departments = departmentIds.length ? await Department.findAll({ where: { id: { [Op.in]: departmentIds } } }) : [];
     const semesters = semesterIds.length ? await Semester.findAll({ where: { id: { [Op.in]: semesterIds } } }) : [];
-    // Subjects for these departments and semesters
     let subjects = [];
-    if (departmentIds.length && semesterIds.length) {
+    if (Array.isArray(teacher.subjectIds) && teacher.subjectIds.length) {
+      subjects = await Subject.findAll({ where: { id: { [Op.in]: teacher.subjectIds } } });
+    } else if (departmentIds.length && semesterIds.length) {
       subjects = await Subject.findAll({ where: { DepartmentId: { [Op.in]: departmentIds }, SemesterId: { [Op.in]: semesterIds } } });
     }
     res.json({
@@ -67,7 +67,9 @@ router.patch('/teacher/:id/profile', async (req, res) => {
     const departments = Array.isArray(teacher.departmentIds) && teacher.departmentIds.length ? await Department.findAll({ where: { id: { [Op.in]: teacher.departmentIds } } }) : [];
     const semesters = Array.isArray(teacher.semesterIds) && teacher.semesterIds.length ? await Semester.findAll({ where: { id: { [Op.in]: teacher.semesterIds } } }) : [];
     let subjects = [];
-    if (teacher.departmentIds && teacher.semesterIds && teacher.departmentIds.length && teacher.semesterIds.length) {
+    if (Array.isArray(teacher.subjectIds) && teacher.subjectIds.length) {
+      subjects = await Subject.findAll({ where: { id: { [Op.in]: teacher.subjectIds } } });
+    } else if (teacher.departmentIds && teacher.semesterIds && teacher.departmentIds.length && teacher.semesterIds.length) {
       subjects = await Subject.findAll({ where: { DepartmentId: { [Op.in]: teacher.departmentIds }, SemesterId: { [Op.in]: teacher.semesterIds } } });
     }
     res.json({
@@ -92,12 +94,15 @@ router.get('/student/:id/profile', async (req, res) => {
     const department = departmentId ? await Department.findByPk(departmentId) : null;
     const semester = semesterId ? await Semester.findByPk(semesterId) : null;
     let subjects = [];
-    if (departmentId && semesterId) {
+    if (Array.isArray(student.subjectIds) && student.subjectIds.length) {
+      subjects = await Subject.findAll({ where: { id: { [Op.in]: student.subjectIds } } });
+    } else if (departmentId && semesterId) {
       subjects = await Subject.findAll({ where: { DepartmentId: departmentId, SemesterId: semesterId } });
     }
     res.json({
       name: student.name,
       email: student.email,
+      rollNumber: student.rollNumber,
       department,
       semester,
       subjects,
@@ -112,8 +117,9 @@ router.patch('/student/:id/profile', async (req, res) => {
   try {
     const student = await User.findByPk(req.params.id);
     if (!student || student.role !== 'student') return res.status(404).json({ error: 'Student not found' });
-    const { name, departmentId, semesterId, subjectIds } = req.body;
+    const { name, departmentId, semesterId, subjectIds, rollNumber } = req.body;
     if (name !== undefined) student.name = name;
+    if (rollNumber !== undefined) student.rollNumber = rollNumber;
     if (departmentId !== undefined) student.departmentIds = [departmentId];
     if (semesterId !== undefined) student.semesterIds = [semesterId];
     if (subjectIds !== undefined) student.subjectIds = subjectIds;
@@ -122,12 +128,15 @@ router.patch('/student/:id/profile', async (req, res) => {
     const department = departmentId ? await Department.findByPk(departmentId) : null;
     const semester = semesterId ? await Semester.findByPk(semesterId) : null;
     let subjects = [];
-    if (departmentId && semesterId) {
+    if (Array.isArray(student.subjectIds) && student.subjectIds.length) {
+      subjects = await Subject.findAll({ where: { id: { [Op.in]: student.subjectIds } } });
+    } else if (departmentId && semesterId) {
       subjects = await Subject.findAll({ where: { DepartmentId: departmentId, SemesterId: semesterId } });
     }
     res.json({
       name: student.name,
       email: student.email,
+      rollNumber: student.rollNumber,
       department,
       semester,
       subjects,

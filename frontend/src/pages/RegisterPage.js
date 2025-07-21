@@ -29,6 +29,7 @@ export default function RegisterPage() {
   const [subjects, setSubjects] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,14 +91,11 @@ export default function RegisterPage() {
         departmentIds: role === 'teacher' ? departmentIds : departmentIds[0] ? [departmentIds[0]] : [],
         semesterIds: role === 'teacher' ? semesterIds : semesterIds[0] ? [semesterIds[0]] : [],
         subjectIds: role === 'teacher' ? subjectIds : subjectIds[0] ? [subjectIds[0]] : [],
+        ...(role === 'student' && { rollNumber }),
       };
       await axios.post('/auth/register', payload);
       setSuccess('Registration successful! You can now login.');
-      if (role === 'teacher') {
-        setTimeout(() => navigate('/teacher-dashboard'), 1500);
-      } else {
-        setTimeout(() => navigate('/login'), 1500);
-      }
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }
@@ -200,27 +198,41 @@ export default function RegisterPage() {
               ))}
             </Select>
           </FormControl>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Subject</InputLabel>
-            <Select
-              multiple={role === 'teacher'}
-              value={subjectIds}
-              onChange={e => setSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
-              input={<OutlinedInput label="Subject" />}
-              renderValue={selected => {
-                const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
-                return subjects.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
-              }}
-              disabled={subjects.length === 0}
-            >
-              {subjects.map(option => (
-                <MenuItem key={option.id} value={option.id}>
-                  {role === 'teacher' && <Checkbox checked={subjectIds.indexOf(option.id) > -1} />}
-                  <ListItemText primary={option.name} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Subject selection only for teachers */}
+          {role === 'teacher' && (
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Subject</InputLabel>
+              <Select
+                multiple
+                value={subjectIds}
+                onChange={e => setSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                input={<OutlinedInput label="Subject" />}
+                renderValue={selected => {
+                  const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                  return subjects.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
+                }}
+                disabled={subjects.length === 0}
+              >
+                {subjects.map(option => (
+                  <MenuItem key={option.id} value={option.id}>
+                    <Checkbox checked={subjectIds.indexOf(option.id) > -1} />
+                    <ListItemText primary={option.name} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          {/* Roll Number only for students */}
+          {role === 'student' && (
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Roll Number"
+              value={rollNumber}
+              onChange={e => setRollNumber(e.target.value)}
+            />
+          )}
           <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }}>Register</Button>
         </Box>
         <Box mt={2} textAlign="center">

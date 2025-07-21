@@ -24,6 +24,10 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('student', 'teacher'),
       allowNull: false,
     },
+    rollNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     departmentIds: {
       type: DataTypes.JSON,
       allowNull: true,

@@ -17,6 +17,7 @@ export default function StudentDashboard() {
   const [editSemesterId, setEditSemesterId] = useState('');
   const [editSubjectIds, setEditSubjectIds] = useState([]);
   const [editSubjects, setEditSubjects] = useState([]);
+  const [editRollNumber, setEditRollNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState(false);
@@ -49,6 +50,7 @@ export default function StudentDashboard() {
                 setEditDepartmentId(profile.department?.id || '');
                 setEditSemesterId(profile.semester?.id || '');
                 setEditSubjectIds(profile.subjects?.map(s => s.id) || []);
+                setEditRollNumber(profile.rollNumber || '');
                 setEditOpen(true);
                 e.stopPropagation();
               }}>Edit Profile</Button>
@@ -64,6 +66,10 @@ export default function StudentDashboard() {
                     <TableRow>
                       <TableCell variant="head">Email</TableCell>
                       <TableCell>{profile.email}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell variant="head">Roll Number</TableCell>
+                      <TableCell>{profile.rollNumber}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell variant="head">Department</TableCell>
@@ -104,6 +110,13 @@ export default function StudentDashboard() {
               fullWidth
               value={editEmail}
               disabled
+            />
+            <TextField
+              margin="normal"
+              label="Roll Number"
+              fullWidth
+              value={editRollNumber}
+              onChange={e => setEditRollNumber(e.target.value)}
             />
             <FormControl fullWidth margin="normal">
               <InputLabel>Department</InputLabel>
@@ -156,6 +169,7 @@ export default function StudentDashboard() {
               try {
                 const res = await axios.patch(`/student/${studentId}/profile`, {
                   name: editName,
+                  rollNumber: editRollNumber,
                   departmentId: editDepartmentId,
                   semesterId: editSemesterId,
                   subjectIds: editSubjectIds,

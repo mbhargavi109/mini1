@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, departmentIds, semesterIds, subjectIds } = req.body;
+    const { name, email, password, role, departmentIds, semesterIds, subjectIds, rollNumber } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -24,6 +24,9 @@ router.post('/register', async (req, res) => {
     user.departmentIds = departmentIds;
     user.semesterIds = semesterIds;
     user.subjectIds = subjectIds;
+    if (role === 'student' && rollNumber) {
+      user.rollNumber = rollNumber;
+    }
     await user.save();
     res.status(201).json({ message: 'Registration successful' });
   } catch (err) {
