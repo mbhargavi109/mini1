@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Typography, Card, CardContent, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Stack, Paper, List, ListItem, ListItemText, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Container, Box, Typography, Card, CardContent, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Stack, Paper, List, ListItem, ListItemText, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import axios from 'axios';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export default function TeacherDashboard() {
   const [profile, setProfile] = useState(null);
@@ -44,11 +45,12 @@ export default function TeacherDashboard() {
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>Teacher Dashboard</Typography>
         {profile && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
+          <Accordion defaultExpanded sx={{ mb: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">Teacher Profile</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
               <TableContainer component={Paper} sx={{ mt: 2 }}>
                 <Table>
                   <TableBody>
@@ -87,8 +89,8 @@ export default function TeacherDashboard() {
                   </TableBody>
                 </Table>
               </TableContainer>
-            </CardContent>
-          </Card>
+            </AccordionDetails>
+          </Accordion>
         )}
         <Typography variant="h6" gutterBottom>Class Notes</Typography>
         
