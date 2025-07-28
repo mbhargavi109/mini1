@@ -9,7 +9,7 @@ const router = express.Router();
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join('public', 'uploads', 'notes');
+    const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'notes');
     // Ensure directory exists
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
@@ -200,10 +200,16 @@ router.get('/subjects', async (req, res) => {
 // GET /notes (with filters)
 router.get('/notes', async (req, res) => {
   try {
-    const { teacherId, subjectId, departmentId, semesterId, search } = req.query;
+    const { teacherId, subjectId, subjectIds, departmentId, semesterId, search } = req.query;
     const filters = [];
     if (teacherId) filters.push({ teacherId: Number(teacherId) });
-    if (subjectId) filters.push({ SubjectId: Number(subjectId) });
+    if (subjectIds) {
+      // Support comma-separated list of subject IDs
+      const ids = subjectIds.split(',').map(Number).filter(Boolean);
+      if (ids.length > 0) filters.push({ SubjectId: { [Op.in]: ids } });
+    } else if (subjectId) {
+      filters.push({ SubjectId: Number(subjectId) });
+    }
     if (departmentId) filters.push({ DepartmentId: Number(departmentId) });
     if (semesterId) filters.push({ SemesterId: Number(semesterId) });
     if (search) {
