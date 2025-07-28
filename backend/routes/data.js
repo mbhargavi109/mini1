@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { Department, Semester, Subject, User, Note } = require('../models');
+const { Department, Semester, Subject, User, Note, Assignment } = require('../models');
 const { Op, Sequelize } = require('sequelize');
 const router = express.Router();
 
@@ -56,6 +56,24 @@ router.get('/semesters', async (req, res) => {
   try {
     const semesters = await Semester.findAll();
     res.json(semesters || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /users (with role filter)
+router.get('/users', async (req, res) => {
+  try {
+    const { role } = req.query;
+    const filters = {};
+    if (role) filters.role = role;
+    
+    const users = await User.findAll({
+      where: filters,
+      attributes: ['id', 'name', 'email', 'role'],
+      order: [['name', 'ASC']]
+    });
+    res.json(users || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -412,6 +430,202 @@ router.get('/download-note/:id', async (req, res) => {
     }
     // Use originalName if available, otherwise fallback to file name
     const originalName = note.title ? `${note.title}${path.extname(filePath)}` : path.basename(filePath);
+    res.download(filePath, originalName);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==================== ASSIGNMENT ROUTES ====================
+
+// GET /assignments (with filters)
+router.get('/assignments', async (req, res) => {
+  try {
+    const { studentId, subjectId, subjectIds, departmentId, semesterId, status, search } = req.query;
+    const filters = [];
+    
+    if (studentId) filters.push({ studentId: Number(studentId) });
+    if (subjectIds) {
+      const ids = subjectIds.split(',').map(Number).filter(Boolean);
+      if (ids.length > 0) filters.push({ SubjectId: { [Op.in]: ids } });
+    } else if (subjectId) {
+      filters.push({ SubjectId: Number(subjectId) });
+    }
+    if (departmentId) filters.push({ DepartmentId: Number(departmentId) });
+    if (semesterId) filters.push({ SemesterId: Number(semesterId) });
+    if (status) filters.push({ status });
+    if (search) {
+      filters.push({
+        title: { [Op.like]: `%${search}%` }
+      });
+    }
+
+    const assignments = await Assignment.findAll({
+      where: filters.length > 0 ? { [Op.and]: filters } : {},
+      include: [
+        { model: User, as: 'student', attributes: ['id', 'name', 'email'] },
+        { model: Subject, attributes: ['id', 'name'] },
+        { model: Department, attributes: ['id', 'name'] },
+        { model: Semester, attributes: ['id', 'name'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(assignments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /assignments/:id
+router.get('/assignments/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findByPk(req.params.id, {
+      include: [
+        { model: User, as: 'student', attributes: ['id', 'name', 'email'] },
+        { model: Subject, attributes: ['id', 'name'] },
+        { model: Department, attributes: ['id', 'name'] },
+        { model: Semester, attributes: ['id', 'name'] }
+      ]
+    });
+    
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+    
+    res.json(assignment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /assignments
+router.post('/assignments', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { title, subjectId, departmentId, semesterId, studentId } = req.body;
+    
+    if (!title || !subjectId || !departmentId || !semesterId || !studentId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const filePath = `uploads/notes/${req.file.filename}`; // Using same upload directory as notes
+
+    const assignment = await Assignment.create({
+      title,
+      filePath,
+      studentId: Number(studentId),
+      SubjectId: Number(subjectId),
+      DepartmentId: Number(departmentId),
+      SemesterId: Number(semesterId),
+      status: 'pending',
+      reviewComment: null
+    });
+
+    const createdAssignment = await Assignment.findByPk(assignment.id, {
+      include: [
+        { model: User, as: 'student', attributes: ['id', 'name', 'email'] },
+        { model: Subject, attributes: ['id', 'name'] },
+        { model: Department, attributes: ['id', 'name'] },
+        { model: Semester, attributes: ['id', 'name'] }
+      ]
+    });
+
+    res.status(201).json(createdAssignment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /assignments/:id
+router.patch('/assignments/:id', upload.single('file'), async (req, res) => {
+  try {
+    const assignment = await Assignment.findByPk(req.params.id);
+    
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    const { title, subjectId, departmentId, semesterId, status, reviewComment } = req.body;
+    
+    if (title !== undefined) assignment.title = title;
+    if (subjectId !== undefined) assignment.SubjectId = Number(subjectId);
+    if (departmentId !== undefined) assignment.DepartmentId = Number(departmentId);
+    if (semesterId !== undefined) assignment.SemesterId = Number(semesterId);
+    if (status !== undefined) assignment.status = status;
+    if (reviewComment !== undefined) assignment.reviewComment = reviewComment;
+
+    if (req.file) {
+      // Delete old file if it exists
+      if (assignment.filePath) {
+        const oldFilePath = path.join(__dirname, '..', 'public', assignment.filePath);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+      assignment.filePath = `uploads/notes/${req.file.filename}`;
+    }
+
+    await assignment.save();
+
+    const updatedAssignment = await Assignment.findByPk(assignment.id, {
+      include: [
+        { model: User, as: 'student', attributes: ['id', 'name', 'email'] },
+        { model: Subject, attributes: ['id', 'name'] },
+        { model: Department, attributes: ['id', 'name'] },
+        { model: Semester, attributes: ['id', 'name'] }
+      ]
+    });
+
+    res.json(updatedAssignment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /assignments/:id
+router.delete('/assignments/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findByPk(req.params.id);
+    
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Delete the file if it exists
+    if (assignment.filePath) {
+      const filePath = path.join(__dirname, '..', 'public', assignment.filePath);
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (fileErr) {
+        console.error('Error deleting file:', fileErr);
+      }
+    }
+
+    await assignment.destroy();
+    res.json({ message: 'Assignment and file deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download assignment file by assignment ID
+router.get('/download-assignment/:id', async (req, res) => {
+  try {
+    const assignment = await Assignment.findByPk(req.params.id);
+    if (!assignment || !assignment.filePath) {
+      return res.status(404).json({ error: 'Assignment or file not found' });
+    }
+    const filePath = path.join(__dirname, '..', 'public', assignment.filePath);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    const originalName = assignment.title ? `${assignment.title}${path.extname(filePath)}` : path.basename(filePath);
     res.download(filePath, originalName);
   } catch (err) {
     res.status(500).json({ error: err.message });

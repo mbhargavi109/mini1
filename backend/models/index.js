@@ -17,7 +17,7 @@ Note.belongsTo(Subject);
 Note.belongsTo(Department);
 Note.belongsTo(Semester);
 
-Assignment.belongsTo(User, { as: 'student' });
+Assignment.belongsTo(User, { as: 'student', foreignKey: 'studentId' });
 Assignment.belongsTo(Subject);
 Assignment.belongsTo(Department);
 Assignment.belongsTo(Semester);

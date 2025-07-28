@@ -54,6 +54,23 @@ export default function TeacherDashboard() {
   const [filterSubjectId, setFilterSubjectId] = useState('');
   const [formSubjects, setFormSubjects] = useState([]);
   
+  // Assignment review state
+  const [assignments, setAssignments] = useState([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [assignmentSearchTerm, setAssignmentSearchTerm] = useState('');
+  const [assignmentFilterDepartmentId, setAssignmentFilterDepartmentId] = useState('');
+  const [assignmentFilterSemesterId, setAssignmentFilterSemesterId] = useState('');
+  const [assignmentFilterSubjectId, setAssignmentFilterSubjectId] = useState('');
+  const [assignmentFilterStatus, setAssignmentFilterStatus] = useState('');
+  const [assignmentFilterStudentId, setAssignmentFilterStudentId] = useState('');
+  const [students, setStudents] = useState([]);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  
   const teacherId = JSON.parse(localStorage.getItem('user'))?.id || 1;
   const user = JSON.parse(localStorage.getItem('user'));
   const isTeacher = user?.role === 'teacher';
@@ -62,6 +79,7 @@ export default function TeacherDashboard() {
     axios.get(`/teacher/${teacherId}/profile`).then(res => setProfile(res.data));
     axios.get('/departments').then(res => setDepartments(res.data));
     axios.get('/semesters').then(res => setSemesters(res.data));
+    fetchStudents();
   }, [teacherId]);
 
   useEffect(() => {
@@ -342,6 +360,121 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Assignment review functions
+  const fetchStudents = async () => {
+    try {
+      const response = await axios.get('/users', { params: { role: 'student' } });
+      setStudents(response.data);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    setLoadingAssignments(true);
+    try {
+      let params = {};
+      
+      if (assignmentSearchTerm) params.search = assignmentSearchTerm;
+      if (assignmentFilterDepartmentId) params.departmentId = assignmentFilterDepartmentId;
+      if (assignmentFilterSemesterId) params.semesterId = assignmentFilterSemesterId;
+      if (assignmentFilterSubjectId) params.subjectId = assignmentFilterSubjectId;
+      if (assignmentFilterStatus) params.status = assignmentFilterStatus;
+      if (assignmentFilterStudentId) params.studentId = assignmentFilterStudentId;
+
+      const response = await axios.get('/assignments', { params });
+      setAssignments(response.data);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      setAssignments([]);
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile) {
+      fetchAssignments();
+    }
+  }, [profile, assignmentSearchTerm, assignmentFilterDepartmentId, assignmentFilterSemesterId, assignmentFilterSubjectId, assignmentFilterStatus, assignmentFilterStudentId]);
+
+  const handleDownloadAssignment = async (assignment) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/download-assignment/${assignment.id}`, {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+      });
+      let filename = assignment.title ? `${assignment.title}${assignment.filePath ? assignment.filePath.substring(assignment.filePath.lastIndexOf('.')) : ''}` : 'downloaded_file';
+      const disposition = response.headers['content-disposition'];
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) filename = match[1];
+      }
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      let message = 'Failed to download file.';
+      if (error.response && error.response.data) {
+        const reader = new FileReader();
+        reader.onload = function() {
+          try {
+            const json = JSON.parse(reader.result);
+            if (json && json.error) {
+              alert(message + '\n' + json.error);
+              return;
+            }
+          } catch {}
+          alert(message);
+        };
+        reader.readAsText(error.response.data);
+      } else if (error.message) {
+        alert(message + '\n' + error.message);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  const openReviewDialog = (assignment) => {
+    setSelectedAssignment(assignment);
+    setReviewComment('');
+    setReviewDialogOpen(true);
+  };
+
+  const handleReviewSubmit = async (status) => {
+    if (!selectedAssignment) return;
+
+    setReviewing(true);
+    setReviewError('');
+    try {
+      await axios.patch(`/assignments/${selectedAssignment.id}`, {
+        status,
+        reviewComment: reviewComment
+      });
+      
+      setReviewSuccess(true);
+      setReviewDialogOpen(false);
+      setSelectedAssignment(null);
+      setReviewComment('');
+      
+      // Refresh assignments
+      fetchAssignments();
+    } catch (err) {
+      setReviewError(err.response?.data?.error || 'Failed to review assignment');
+    } finally {
+      setReviewing(false);
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
@@ -564,6 +697,175 @@ export default function TeacherDashboard() {
                               >
                                 <DeleteIcon />
                               </IconButton>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </AccordionDetails>
+        </Accordion>
+
+        {/* Assignment Review Section */}
+        <Accordion defaultExpanded sx={{ mb: 3 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>Review Assignments</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {/* Filters */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+              <TextField
+                label="Search by Title"
+                value={assignmentSearchTerm}
+                onChange={e => setAssignmentSearchTerm(e.target.value)}
+                variant="outlined"
+                size="small"
+                sx={{ minWidth: 200 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <FormControl sx={{ minWidth: 150 }} size="small">
+                <InputLabel>Department</InputLabel>
+                <Select
+                  value={assignmentFilterDepartmentId}
+                  onChange={e => setAssignmentFilterDepartmentId(e.target.value)}
+                  input={<OutlinedInput label="Department" />}
+                >
+                  <MenuItem value="">All Departments</MenuItem>
+                  {departments.map(option => (
+                    <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 150 }} size="small">
+                <InputLabel>Semester</InputLabel>
+                <Select
+                  value={assignmentFilterSemesterId}
+                  onChange={e => setAssignmentFilterSemesterId(e.target.value)}
+                  input={<OutlinedInput label="Semester" />}
+                >
+                  <MenuItem value="">All Semesters</MenuItem>
+                  {semesters.map(option => (
+                    <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 150 }} size="small">
+                <InputLabel>Subject</InputLabel>
+                <Select
+                  value={assignmentFilterSubjectId}
+                  onChange={e => setAssignmentFilterSubjectId(e.target.value)}
+                  input={<OutlinedInput label="Subject" />}
+                >
+                  <MenuItem value="">All Subjects</MenuItem>
+                  {subjects.map(option => (
+                    <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 150 }} size="small">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={assignmentFilterStatus}
+                  onChange={e => setAssignmentFilterStatus(e.target.value)}
+                  input={<OutlinedInput label="Status" />}
+                >
+                  <MenuItem value="">All Status</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 150 }} size="small">
+                <InputLabel>Student</InputLabel>
+                <Select
+                  value={assignmentFilterStudentId}
+                  onChange={e => setAssignmentFilterStudentId(e.target.value)}
+                  input={<OutlinedInput label="Student" />}
+                >
+                  <MenuItem value="">All Students</MenuItem>
+                  {students.map(option => (
+                    <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Assignments Table */}
+            {loadingAssignments ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Title</TableCell>
+                      <TableCell>Student</TableCell>
+                      <TableCell>Subject</TableCell>
+                      <TableCell>Department</TableCell>
+                      <TableCell>Semester</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Submitted Date</TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {assignments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">No assignments found</TableCell>
+                      </TableRow>
+                    ) : (
+                      assignments.map(assignment => (
+                        <TableRow key={assignment.id}>
+                          <TableCell>{assignment.title}</TableCell>
+                          <TableCell>{assignment.student?.name || 'N/A'}</TableCell>
+                          <TableCell>{assignment.Subject?.name || 'N/A'}</TableCell>
+                          <TableCell>{assignment.Department?.name || 'N/A'}</TableCell>
+                          <TableCell>{assignment.Semester?.name || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={assignment.status}
+                              color={
+                                assignment.status === 'approved' ? 'success' :
+                                assignment.status === 'rejected' ? 'error' :
+                                'warning'
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {new Date(assignment.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={1}>
+                              <IconButton
+                                color="primary"
+                                size="small"
+                                onClick={() => handleDownloadAssignment(assignment)}
+                                title="Download"
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                              {assignment.status === 'pending' && (
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => openReviewDialog(assignment)}
+                                  title="Review"
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                              )}
                             </Stack>
                           </TableCell>
                         </TableRow>
@@ -838,6 +1140,63 @@ export default function TeacherDashboard() {
         </Snackbar>
         <Snackbar open={!!noteSuccess} autoHideDuration={3000} onClose={() => setNoteSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
           <Alert severity="success" onClose={() => setNoteSuccess('')} sx={{ width: '100%' }}>{noteSuccess}</Alert>
+        </Snackbar>
+
+        {/* Assignment Review Dialog */}
+        <Dialog open={reviewDialogOpen} onClose={() => setReviewDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Review Assignment</DialogTitle>
+          <DialogContent>
+            {selectedAssignment && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" gutterBottom>{selectedAssignment.title}</Typography>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Student: {selectedAssignment.student?.name || 'N/A'}
+                </Typography>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Subject: {selectedAssignment.Subject?.name || 'N/A'}
+                </Typography>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Submitted: {new Date(selectedAssignment.createdAt).toLocaleDateString()}
+                </Typography>
+              </Box>
+            )}
+            <TextField
+              fullWidth
+              label="Review Comment (Optional)"
+              value={reviewComment}
+              onChange={e => setReviewComment(e.target.value)}
+              multiline
+              rows={4}
+              margin="normal"
+              placeholder="Add your feedback or comments here..."
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setReviewDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => handleReviewSubmit('rejected')}
+              color="error"
+              disabled={reviewing}
+            >
+              {reviewing ? 'Rejecting...' : 'Reject'}
+            </Button>
+            <Button
+              onClick={() => handleReviewSubmit('approved')}
+              color="success"
+              variant="contained"
+              disabled={reviewing}
+            >
+              {reviewing ? 'Approving...' : 'Approve'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Review Success/Error Snackbars */}
+        <Snackbar open={!!reviewError} autoHideDuration={4000} onClose={() => setReviewError('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+          <Alert severity="error" onClose={() => setReviewError('')} sx={{ width: '100%' }}>{reviewError}</Alert>
+        </Snackbar>
+        <Snackbar open={reviewSuccess} autoHideDuration={3000} onClose={() => setReviewSuccess(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+          <Alert severity="success" onClose={() => setReviewSuccess(false)} sx={{ width: '100%' }}>Assignment reviewed successfully!</Alert>
         </Snackbar>
       </Box>
     </Container>
