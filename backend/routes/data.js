@@ -159,7 +159,7 @@ router.patch('/student/:id/profile', async (req, res) => {
     if (rollNumber !== undefined) student.rollNumber = rollNumber;
     if (departmentId !== undefined) student.departmentIds = [departmentId];
     if (semesterId !== undefined) student.semesterIds = [semesterId];
-    if (subjectIds !== undefined) student.subjectIds = subjectIds;
+    if (subjectIds !== undefined) student.subjectIds = Array.isArray(subjectIds) ? subjectIds.map(Number) : [];
     await student.save();
     // Return updated profile
     const department = departmentId ? await Department.findByPk(departmentId) : null;

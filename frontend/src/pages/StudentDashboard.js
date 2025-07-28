@@ -278,7 +278,10 @@ export default function StudentDashboard() {
               <InputLabel>Semester</InputLabel>
               <Select
                 value={editSemesterId}
-                onChange={e => setEditSemesterId(e.target.value)}
+                onChange={e => {
+                  setEditSemesterId(e.target.value);
+                  setEditSubjectIds([]); // Clear selected subjects when semester changes
+                }}
                 input={<OutlinedInput label="Semester" />}
               >
                 {semesters.map(option => (
@@ -291,7 +294,11 @@ export default function StudentDashboard() {
               <Select
                 multiple
                 value={editSubjectIds}
-                onChange={e => setEditSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                onChange={e => {
+                  // Always store as array of numbers
+                  const value = e.target.value;
+                  setEditSubjectIds(Array.isArray(value) ? value.map(Number) : []);
+                }}
                 input={<OutlinedInput label="Subjects" />}
                 renderValue={selected => editSubjects.filter(s => selected.includes(s.id)).map(s => s.name).join(', ')}
                 disabled={editSubjects.length === 0}
@@ -316,7 +323,7 @@ export default function StudentDashboard() {
                   rollNumber: editRollNumber,
                   departmentId: editDepartmentId,
                   semesterId: editSemesterId,
-                  subjectIds: editSubjectIds,
+                  subjectIds: editSubjectIds.map(Number), // ensure numbers
                 });
                 setProfile(res.data);
                 setEditSuccess(true);
