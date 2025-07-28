@@ -11,8 +11,6 @@ export default function TeacherDashboard() {
   const [departmentId, setDepartmentId] = useState('');
   const [semesterId, setSemesterId] = useState('');
   const [subjectId, setSubjectId] = useState('');
-  const [notes, setNotes] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -42,17 +40,6 @@ export default function TeacherDashboard() {
     }
     setSubjectId('');
   }, [departmentId, semesterId]);
-
-  useEffect(() => {
-    if (departmentId && semesterId && subjectId) {
-      setLoading(true);
-      axios.get('/notes', { params: { departmentId, semesterId, subjectId } })
-        .then(res => setNotes(res.data))
-        .finally(() => setLoading(false));
-    } else {
-      setNotes([]);
-    }
-  }, [departmentId, semesterId, subjectId]);
 
   useEffect(() => {
     const fetchEditSubjects = async () => {
@@ -141,33 +128,35 @@ export default function TeacherDashboard() {
             </AccordionDetails>
           </Accordion>
         )}
-        {/* Edit Profile Dialog */}
-        <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+
+        <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogContent>
             <TextField
-              margin="normal"
-              label="Name"
               fullWidth
+              label="Name"
               value={editName}
               onChange={e => setEditName(e.target.value)}
+              margin="normal"
             />
             <TextField
-              margin="normal"
-              label="Email"
               fullWidth
+              label="Email"
               value={editEmail}
               onChange={e => setEditEmail(e.target.value)}
-              disabled
+              margin="normal"
             />
             <FormControl fullWidth margin="normal">
               <InputLabel>Departments</InputLabel>
               <Select
                 multiple
                 value={editDepartmentIds}
-                onChange={e => setEditDepartmentIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                onChange={e => setEditDepartmentIds(e.target.value)}
                 input={<OutlinedInput label="Departments" />}
-                renderValue={selected => departments.filter(d => selected.includes(d.id)).map(d => d.name).join(', ')}
+                renderValue={selected => {
+                  const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                  return departments.filter(d => arr.includes(d.id)).map(d => d.name).join(', ');
+                }}
               >
                 {departments.map(option => (
                   <MenuItem key={option.id} value={option.id}>
@@ -182,9 +171,12 @@ export default function TeacherDashboard() {
               <Select
                 multiple
                 value={editSemesterIds}
-                onChange={e => setEditSemesterIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                onChange={e => setEditSemesterIds(e.target.value)}
                 input={<OutlinedInput label="Semesters" />}
-                renderValue={selected => semesters.filter(s => selected.includes(s.id)).map(s => s.name).join(', ')}
+                renderValue={selected => {
+                  const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                  return semesters.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
+                }}
               >
                 {semesters.map(option => (
                   <MenuItem key={option.id} value={option.id}>
@@ -199,10 +191,13 @@ export default function TeacherDashboard() {
               <Select
                 multiple
                 value={editSubjectIds}
-                onChange={e => setEditSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                onChange={e => setEditSubjectIds(e.target.value)}
                 input={<OutlinedInput label="Subjects" />}
-                renderValue={selected => editSubjects.filter(s => selected.includes(s.id)).map(s => s.name).join(', ')}
-                disabled={editSubjects.length === 0}
+                renderValue={selected => {
+                  const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                  return editSubjects.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
+                }}
+                disabled={!editSubjects.length}
               >
                 {editSubjects.map(option => (
                   <MenuItem key={option.id} value={option.id}>
@@ -215,7 +210,7 @@ export default function TeacherDashboard() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={async () => {
+            <Button onClick={async () => {
               setSaving(true);
               setEditError('');
               try {
@@ -245,75 +240,6 @@ export default function TeacherDashboard() {
         <Snackbar open={editSuccess} autoHideDuration={3000} onClose={() => setEditSuccess(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
           <Alert severity="success" onClose={() => setEditSuccess(false)} sx={{ width: '100%' }}>Profile updated successfully!</Alert>
         </Snackbar>
-        <Typography variant="h6" gutterBottom>Class Notes</Typography>
-        
-        <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.default', boxShadow: 1, borderRadius: 2 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-            <FormControl sx={{ minWidth: 180 }}>
-              <InputLabel>Department</InputLabel>
-              <Select
-                value={isTeacher ? departmentId : departmentId || ''}
-                label="Department"
-                onChange={e => setDepartmentId(isTeacher ? e.target.value : e.target.value)}
-                multiple={false}
-              >
-                {departments.map(dep => (
-                  <MenuItem key={dep.id} value={dep.id}>{dep.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Semester</InputLabel>
-              <Select
-                value={isTeacher ? semesterId : semesterId || ''}
-                label="Semester"
-                onChange={e => setSemesterId(isTeacher ? e.target.value : e.target.value)}
-                multiple={false}
-              >
-                {semesters.map(sem => (
-                  <MenuItem key={sem.id} value={sem.id}>{sem.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 180 }}>
-              <InputLabel>Subject</InputLabel>
-              <Select
-                value={subjectId}
-                label="Subject"
-                onChange={e => setSubjectId(e.target.value)}
-                disabled={!subjects.length}
-              >
-                {subjects.map(sub => (
-                  <MenuItem key={sub.id} value={sub.id}>{sub.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-        </Paper>
-
-        <Paper sx={{ p: 2, mb: 3, boxShadow: 3, borderRadius: 2 }}>
-          {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight={100}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <List>
-              {notes.map(note => (
-                <ListItem key={note.id} divider secondaryAction={
-                  <a href={note.filePath} download target="_blank" rel="noopener noreferrer">
-                    <Chip label="Download" color="primary" clickable />
-                  </a>
-                }>
-                  <ListItemText
-                    primary={<Typography fontWeight={600}>{note.title}</Typography>}
-                    secondary={<Typography variant="body2" color="text.secondary">{note.filePath}</Typography>}
-                  />
-                </ListItem>
-              ))}
-              {!notes.length && <ListItem><ListItemText primary="No class notes found for this selection." /></ListItem>}
-            </List>
-          )}
-        </Paper>
       </Box>
     </Container>
   );
