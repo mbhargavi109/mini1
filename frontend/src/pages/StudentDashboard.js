@@ -454,14 +454,15 @@ export default function StudentDashboard() {
                         <TableCell>Subject</TableCell>
                         <TableCell>Status</TableCell>
                         <TableCell>Submitted Date</TableCell>
+                        <TableCell>Review Comments</TableCell>
                         <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {loadingAssignments ? (
-                        <TableRow><TableCell colSpan={5}>Loading...</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6}>Loading...</TableCell></TableRow>
                       ) : assignments.length === 0 ? (
-                        <TableRow><TableCell colSpan={5}>No assignments found.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6}>No assignments found.</TableCell></TableRow>
                       ) : assignments.map(assignment => (
                         <TableRow key={assignment.id}>
                           <TableCell>{assignment.title}</TableCell>
@@ -479,6 +480,35 @@ export default function StudentDashboard() {
                           </TableCell>
                           <TableCell>
                             {new Date(assignment.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {assignment.reviewComment ? (
+                              <Box>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    maxWidth: 200, 
+                                    overflow: 'hidden', 
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    cursor: 'pointer'
+                                  }}
+                                  title={assignment.reviewComment}
+                                  onClick={() => {
+                                    alert(`Review Comments:\n\n${assignment.reviewComment}`);
+                                  }}
+                                >
+                                  {assignment.reviewComment}
+                                </Typography>
+                                <Typography variant="caption" color="textSecondary">
+                                  Click to view full comment
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="textSecondary">
+                                No comments yet
+                              </Typography>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', gap: 1 }}>
