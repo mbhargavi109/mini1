@@ -210,59 +210,147 @@ export default function RegisterPage() {
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box sx={{ mt: 8, p: 3, boxShadow: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
-        <Typography variant="h5" align="center" gutterBottom>Register</Typography>
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            label="Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onBlur={() => handleFieldBlur('name')}
-            error={touched.name && validationErrors.name}
-            helperText={touched.name && validationErrors.name}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            label="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onBlur={() => handleFieldBlur('email')}
-            error={touched.email && validationErrors.email}
-            helperText={touched.email && validationErrors.email}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            label="Password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onBlur={() => handleFieldBlur('password')}
-            error={touched.password && validationErrors.password}
-            helperText={touched.password && validationErrors.password}
-          />
-          <TextField
-            margin="normal"
-            select
-            fullWidth
-            label="Role"
-            value={role}
-            onChange={e => setRole(e.target.value)}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundImage: 'url("https://images.unsplash.com/photo-1592280771190-3e2e4d571952?fm=jpg&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y29sbGVnZSUyMGJ1aWxkaW5nfGVufDB8fDB8fHww&ixlib=rb-4.1.0&q=60&w=3000")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          zIndex: 1,
+        },
+      }}
+    >
+      <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 2 }}>
+        <Box 
+          sx={{ 
+            p: 4, 
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            borderRadius: 3,
+            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          <Typography 
+            variant="h4" 
+            align="center" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600,
+              background: 'linear-gradient(45deg, #667eea, #764ba2)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 3
+            }}
           >
-            {roles.map(option => (
-              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-            ))}
-          </TextField>
+            Create Account
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onBlur={() => handleFieldBlur('name')}
+              error={touched.name && validationErrors.name}
+              helperText={touched.name && validationErrors.name}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onBlur={() => handleFieldBlur('email')}
+              error={touched.email && validationErrors.email}
+              helperText={touched.email && validationErrors.email}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onBlur={() => handleFieldBlur('password')}
+              error={touched.password && validationErrors.password}
+              helperText={touched.password && validationErrors.password}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
+            />
+            <TextField
+              margin="normal"
+              select
+              required
+              fullWidth
+              label="Role"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
+            >
+              {roles.map(option => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
           <FormControl fullWidth margin="normal" error={touched.departments && !!validationErrors.departments}>
             <InputLabel>Department</InputLabel>
             <Select
@@ -280,6 +368,16 @@ export default function RegisterPage() {
               renderValue={selected => {
                 const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
                 return departments.filter(d => arr.includes(d.value)).map(d => d.label).join(', ');
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
               }}
             >
               {departments.map(option => (
@@ -313,6 +411,16 @@ export default function RegisterPage() {
                 const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
                 return semesters.filter(s => arr.includes(s.value)).map(s => s.label).join(', ');
               }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
             >
               {semesters.map(option => (
                 <MenuItem key={option.value} value={option.value}>
@@ -342,6 +450,16 @@ export default function RegisterPage() {
                   return subjects.filter(s => arr.includes(s.id)).map(s => s.name).join(', ');
                 }}
                 disabled={subjects.length === 0}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  },
+                }}
               >
                 {subjects.map(option => (
                   <MenuItem key={option.id} value={option.id}>
@@ -369,16 +487,55 @@ export default function RegisterPage() {
               onBlur={() => handleFieldBlur('rollNumber')}
               error={touched.rollNumber && validationErrors.rollNumber}
               helperText={touched.rollNumber && validationErrors.rollNumber}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#667eea',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#667eea',
+                  },
+                },
+              }}
             />
           )}
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }} disabled={!isFormValid}>
-            Register
+          <Button 
+            type="submit" 
+            fullWidth 
+            variant="contained" 
+            sx={{ 
+              mt: 3, 
+              mb: 2,
+              background: 'linear-gradient(45deg, #667eea, #764ba2)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+              },
+              py: 1.5,
+              fontSize: '1.1rem',
+              fontWeight: 600,
+            }}
+            disabled={!isFormValid}
+          >
+            Create Account
           </Button>
         </Box>
         <Box mt={2} textAlign="center">
-          <Link href="/login" underline="hover">Already have an account? Login</Link>
+          <Link 
+            href="/login" 
+            underline="hover"
+            sx={{ 
+              color: '#667eea',
+              fontWeight: 500,
+              '&:hover': {
+                color: '#5a6fd8',
+              }
+            }}
+          >
+            Already have an account? Login
+          </Link>
         </Box>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </Box>
   );
 } 

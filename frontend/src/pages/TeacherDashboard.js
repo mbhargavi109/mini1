@@ -638,13 +638,59 @@ const handleNoteSubmit = async () => {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundImage: 'url("https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          zIndex: 1,
+        },
+      }}
+    >
+      <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2, py: 4 }}>
+        <Box sx={{ 
+          bgcolor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 3,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+        }}>
         {profile && (
           <Accordion defaultExpanded sx={{ mb: 3 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6" sx={{ flexGrow: 1 }}>Teacher Profile</Typography>
-              <Button variant="outlined" size="small" sx={{ ml: 2 }} onClick={handleEditProfile} disabled={saving}>
+              <Button 
+                variant="contained" 
+                size="small" 
+                sx={{ 
+                  ml: 2,
+                  background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                  fontWeight: 600,
+                  py: 1.2,
+                  px: 2.5,
+                  fontSize: '1rem',
+                  boxShadow: '0 2px 8px rgba(102,126,234,0.15)',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+                  },
+                }} 
+                onClick={handleEditProfile} 
+                disabled={saving}
+              >
                 {saving ? 'Saving...' : 'Edit Profile'}
               </Button>
             </AccordionSummary>
@@ -699,7 +745,18 @@ const handleNoteSubmit = async () => {
               variant="contained" 
               size="small" 
               startIcon={<AddIcon />}
-              sx={{ ml: 2 }} 
+              sx={{ 
+                ml: 2,
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                fontWeight: 600,
+                py: 1.2,
+                px: 2.5,
+                fontSize: '1rem',
+                boxShadow: '0 2px 8px rgba(102,126,234,0.15)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+                },
+              }} 
               onClick={e => {
                 openNoteDialog('add');
                 e.stopPropagation();
@@ -1135,7 +1192,22 @@ const handleNoteSubmit = async () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveProfile} disabled={saving || !isEditFormValid}>
+            <Button 
+              variant="contained"
+              onClick={handleSaveProfile} 
+              disabled={saving || !isEditFormValid}
+              sx={{
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                fontWeight: 600,
+                py: 1.2,
+                px: 2.5,
+                fontSize: '1rem',
+                boxShadow: '0 2px 8px rgba(102,126,234,0.15)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+                },
+              }}
+            >
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </DialogActions>
@@ -1306,6 +1378,17 @@ const handleNoteSubmit = async () => {
               onClick={handleNoteSubmit}
               variant="contained"
               disabled={!isNoteFormValid || uploadingFile}
+              sx={{
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                fontWeight: 600,
+                py: 1.2,
+                px: 2.5,
+                fontSize: '1rem',
+                boxShadow: '0 2px 8px rgba(102,126,234,0.15)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+                },
+              }}
             >
               {uploadingFile ? 'Uploading...' : (noteDialogMode === 'add' ? 'Add Note' : 'Update Note')}
             </Button>
@@ -1360,9 +1443,19 @@ const handleNoteSubmit = async () => {
             </Button>
             <Button
               onClick={() => handleReviewSubmit('approved')}
-              color="success"
               variant="contained"
               disabled={reviewing}
+              sx={{
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                fontWeight: 600,
+                py: 1.2,
+                px: 2.5,
+                fontSize: '1rem',
+                boxShadow: '0 2px 8px rgba(102,126,234,0.15)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #5a6fd8, #6a4190)',
+                },
+              }}
             >
               {reviewing ? 'Approving...' : 'Approve'}
             </Button>
@@ -1376,7 +1469,8 @@ const handleNoteSubmit = async () => {
         <Snackbar open={reviewSuccess} autoHideDuration={3000} onClose={() => setReviewSuccess(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
           <Alert severity="success" onClose={() => setReviewSuccess(false)} sx={{ width: '100%' }}>Assignment reviewed successfully!</Alert>
         </Snackbar>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </Box>
   );
 } 
