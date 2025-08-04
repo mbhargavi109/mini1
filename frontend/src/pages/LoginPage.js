@@ -18,8 +18,22 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Basic form validation
+    if (!email.trim() || !password.trim() || !role) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
     try {
-      const res = await axios.post('/auth/login', { email, password });
+      const res = await axios.post('/auth/login', { email, password, role });
+      
+      // Validate that the user's actual role matches the selected role
+      if (res.data.user.role !== role) {
+        setError(`Invalid credentials for ${role} role. Please check your email and password.`);
+        return;
+      }
+      
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       
@@ -62,6 +76,7 @@ export default function LoginPage() {
           <TextField
             margin="normal"
             select
+            required
             fullWidth
             label="Role"
             value={role}

@@ -3,6 +3,33 @@ import { Container, Box, Typography, TextField, Button, MenuItem, Alert, Link, S
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// Validation functions
+const validateName = (name) => {
+  if (!name) return 'Name is required';
+  if (name.length < 2) return 'Name must be at least 2 characters long';
+  if (!/^[a-zA-Z\s]+$/.test(name)) return 'Name can only contain letters and spaces';
+  return '';
+};
+
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email) return 'Email is required';
+  if (!emailRegex.test(email)) return 'Please enter a valid email address';
+  return '';
+};
+
+const validatePassword = (password) => {
+  if (!password) return 'Password is required';
+  if (password.length < 6) return 'Password must be at least 6 characters long';
+  return '';
+};
+
+const validateRollNumber = (rollNumber) => {
+  if (!rollNumber) return 'Roll number is required';
+  if (rollNumber.length < 3) return 'Roll number must be at least 3 characters long';
+  return '';
+};
+
 const roles = [
   { value: 'student', label: 'Student' },
   { value: 'teacher', label: 'Teacher' },
@@ -30,6 +57,12 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [rollNumber, setRollNumber] = useState('');
+  
+  // Validation states
+  const [validationErrors, setValidationErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,10 +111,85 @@ export default function RegisterPage() {
     fetchSubjects();
   }, [departmentIds, semesterIds, role]);
 
+  // Validate form whenever relevant fields change
+  useEffect(() => {
+    const errors = {};
+    
+    // Validate name
+    const nameError = validateName(name);
+    if (nameError) errors.name = nameError;
+    
+    // Validate email
+    const emailError = validateEmail(email);
+    if (emailError) errors.email = emailError;
+    
+    // Validate password
+    const passwordError = validatePassword(password);
+    if (passwordError) errors.password = passwordError;
+    
+    // Validate department selection
+    if (role === 'teacher') {
+      if (departmentIds.length === 0) {
+        errors.departments = 'Please select at least one department';
+      }
+    } else {
+      if (!departmentIds[0]) {
+        errors.departments = 'Please select a department';
+      }
+    }
+    
+    // Validate semester selection
+    if (role === 'teacher') {
+      if (semesterIds.length === 0) {
+        errors.semesters = 'Please select at least one semester';
+      }
+    } else {
+      if (!semesterIds[0]) {
+        errors.semesters = 'Please select a semester';
+      }
+    }
+    
+    // Validate subject selection (only for teachers)
+    if (role === 'teacher' && subjectIds.length === 0) {
+      errors.subjects = 'Please select at least one subject';
+    }
+    
+    // Validate roll number (only for students)
+    if (role === 'student') {
+      const rollNumberError = validateRollNumber(rollNumber);
+      if (rollNumberError) errors.rollNumber = rollNumberError;
+    }
+    
+    setValidationErrors(errors);
+    setIsFormValid(Object.keys(errors).length === 0);
+  }, [name, email, password, departmentIds, semesterIds, subjectIds, rollNumber, role]);
+
+  const handleFieldBlur = (fieldName) => {
+    setTouched(prev => ({ ...prev, [fieldName]: true }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
+    // Mark all fields as touched
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      departments: true,
+      semesters: true,
+      subjects: role === 'teacher' ? true : false,
+      rollNumber: role === 'student' ? true : false
+    });
+    
+    // Check if form is valid
+    if (!isFormValid) {
+      setError('Please fix the validation errors before submitting');
+      return;
+    }
+    
     try {
       const payload = {
         name,
@@ -115,6 +223,9 @@ export default function RegisterPage() {
             label="Name"
             value={name}
             onChange={e => setName(e.target.value)}
+            onBlur={() => handleFieldBlur('name')}
+            error={touched.name && validationErrors.name}
+            helperText={touched.name && validationErrors.name}
           />
           <TextField
             margin="normal"
@@ -124,6 +235,9 @@ export default function RegisterPage() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onBlur={() => handleFieldBlur('email')}
+            error={touched.email && validationErrors.email}
+            helperText={touched.email && validationErrors.email}
           />
           <TextField
             margin="normal"
@@ -133,6 +247,9 @@ export default function RegisterPage() {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onBlur={() => handleFieldBlur('password')}
+            error={touched.password && validationErrors.password}
+            helperText={touched.password && validationErrors.password}
           />
           <TextField
             margin="normal"
@@ -146,7 +263,7 @@ export default function RegisterPage() {
               <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
             ))}
           </TextField>
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={touched.departments && !!validationErrors.departments}>
             <InputLabel>Department</InputLabel>
             <Select
               multiple={role === 'teacher'}
@@ -158,6 +275,7 @@ export default function RegisterPage() {
                   setDepartmentIds([e.target.value]);
                 }
               }}
+              onBlur={() => handleFieldBlur('departments')}
               input={<OutlinedInput label="Department" />}
               renderValue={selected => {
                 const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
@@ -171,8 +289,13 @@ export default function RegisterPage() {
                 </MenuItem>
               ))}
             </Select>
+            {touched.departments && validationErrors.departments && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                {validationErrors.departments}
+              </Typography>
+            )}
           </FormControl>
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={touched.semesters && !!validationErrors.semesters}>
             <InputLabel>Semester</InputLabel>
             <Select
               multiple={role === 'teacher'}
@@ -184,6 +307,7 @@ export default function RegisterPage() {
                   setSemesterIds([e.target.value]);
                 }
               }}
+              onBlur={() => handleFieldBlur('semesters')}
               input={<OutlinedInput label="Semester" />}
               renderValue={selected => {
                 const arr = role === 'teacher' ? (Array.isArray(selected) ? selected : selected ? [selected] : []) : [selected];
@@ -197,15 +321,21 @@ export default function RegisterPage() {
                 </MenuItem>
               ))}
             </Select>
+            {touched.semesters && validationErrors.semesters && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                {validationErrors.semesters}
+              </Typography>
+            )}
           </FormControl>
           {/* Subject selection only for teachers */}
           {role === 'teacher' && (
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" error={touched.subjects && !!validationErrors.subjects}>
               <InputLabel>Subject</InputLabel>
               <Select
                 multiple
                 value={subjectIds}
                 onChange={e => setSubjectIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                onBlur={() => handleFieldBlur('subjects')}
                 input={<OutlinedInput label="Subject" />}
                 renderValue={selected => {
                   const arr = Array.isArray(selected) ? selected : selected ? [selected] : [];
@@ -220,6 +350,11 @@ export default function RegisterPage() {
                   </MenuItem>
                 ))}
               </Select>
+              {touched.subjects && validationErrors.subjects && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {validationErrors.subjects}
+                </Typography>
+              )}
             </FormControl>
           )}
           {/* Roll Number only for students */}
@@ -231,9 +366,14 @@ export default function RegisterPage() {
               label="Roll Number"
               value={rollNumber}
               onChange={e => setRollNumber(e.target.value)}
+              onBlur={() => handleFieldBlur('rollNumber')}
+              error={touched.rollNumber && validationErrors.rollNumber}
+              helperText={touched.rollNumber && validationErrors.rollNumber}
             />
           )}
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }}>Register</Button>
+          <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }} disabled={!isFormValid}>
+            Register
+          </Button>
         </Box>
         <Box mt={2} textAlign="center">
           <Link href="/login" underline="hover">Already have an account? Login</Link>

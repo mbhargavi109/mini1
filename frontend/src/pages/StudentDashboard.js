@@ -6,6 +6,27 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 
+// Validation functions
+const validateName = (name) => {
+  if (!name) return 'Name is required';
+  if (name.length < 2) return 'Name must be at least 2 characters long';
+  if (!/^[a-zA-Z\s]+$/.test(name)) return 'Name can only contain letters and spaces';
+  return '';
+};
+
+const validateRollNumber = (rollNumber) => {
+  if (!rollNumber) return 'Roll number is required';
+  if (rollNumber.length < 3) return 'Roll number must be at least 3 characters long';
+  if (!/^[A-Za-z0-9]+$/.test(rollNumber)) return 'Roll number can only contain letters and numbers';
+  return '';
+};
+
+const validateAssignmentTitle = (title) => {
+  if (!title) return 'Assignment title is required';
+  if (title.length < 3) return 'Title must be at least 3 characters long';
+  return '';
+};
+
 export default function StudentDashboard() {
   const user = JSON.parse(localStorage.getItem('user'));
   const studentId = user?.id;
@@ -24,6 +45,12 @@ export default function StudentDashboard() {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState(false);
+  
+  // Validation states for edit profile
+  const [editValidationErrors, setEditValidationErrors] = useState({});
+  const [editTouched, setEditTouched] = useState({});
+  const [isEditFormValid, setIsEditFormValid] = useState(false);
+  
   const [notes, setNotes] = useState([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +72,64 @@ export default function StudentDashboard() {
   const [assignmentSaving, setAssignmentSaving] = useState(false);
   const [assignmentError, setAssignmentError] = useState('');
   const [assignmentSuccess, setAssignmentSuccess] = useState(false);
+  
+  // Validation states for assignment form
+  const [assignmentValidationErrors, setAssignmentValidationErrors] = useState({});
+  const [assignmentTouched, setAssignmentTouched] = useState({});
+  const [isAssignmentFormValid, setIsAssignmentFormValid] = useState(false);
+
+  // Validate edit profile form whenever relevant fields change
+  useEffect(() => {
+    const errors = {};
+    
+    // Validate name
+    const nameError = validateName(editName);
+    if (nameError) errors.name = nameError;
+    
+    // Validate roll number
+    const rollNumberError = validateRollNumber(editRollNumber);
+    if (rollNumberError) errors.rollNumber = rollNumberError;
+    
+    // Validate department selection
+    if (!editDepartmentId) {
+      errors.department = 'Please select a department';
+    }
+    
+    // Validate semester selection
+    if (!editSemesterId) {
+      errors.semester = 'Please select a semester';
+    }
+    
+    // Validate subject selection
+    if (editSubjectIds.length === 0) {
+      errors.subjects = 'Please select at least one subject';
+    }
+    
+    setEditValidationErrors(errors);
+    setIsEditFormValid(Object.keys(errors).length === 0);
+  }, [editName, editRollNumber, editDepartmentId, editSemesterId, editSubjectIds]);
+
+  // Validate assignment form whenever relevant fields change
+  useEffect(() => {
+    const errors = {};
+    
+    // Validate title
+    const titleError = validateAssignmentTitle(assignmentFormData.title);
+    if (titleError) errors.title = titleError;
+    
+    // Validate subject selection
+    if (!assignmentFormData.subjectId) {
+      errors.subjectId = 'Please select a subject';
+    }
+    
+    // Validate file (only for new assignments)
+    if (!assignmentEditMode && !assignmentFormData.file) {
+      errors.file = 'Please select a file';
+    }
+    
+    setAssignmentValidationErrors(errors);
+    setIsAssignmentFormValid(Object.keys(errors).length === 0);
+  }, [assignmentFormData.title, assignmentFormData.subjectId, assignmentFormData.file, assignmentEditMode]);
 
   useEffect(() => {
     axios.get(`/student/${studentId}/profile`).then(res => setProfile(res.data));
@@ -160,8 +245,16 @@ export default function StudentDashboard() {
   };
 
   const handleAssignmentSubmit = async () => {
-    if (!assignmentFormData.title || !assignmentFormData.subjectId || !assignmentFormData.file) {
-      setAssignmentError('Please fill all required fields');
+    // Mark all fields as touched
+    setAssignmentTouched({
+      title: true,
+      subjectId: true,
+      file: true
+    });
+    
+    // Check if form is valid
+    if (!isAssignmentFormValid) {
+      setAssignmentError('Please fix the validation errors before submitting');
       return;
     }
 
@@ -186,6 +279,8 @@ export default function StudentDashboard() {
       setAssignmentDialogOpen(false);
       setAssignmentFormData({ title: '', subjectId: '', file: null });
       setAssignmentEditMode(false);
+      setAssignmentValidationErrors({});
+      setAssignmentTouched({});
       
       // Refresh assignments
       if (profile && profile.department && profile.semester && profile.subjects && profile.subjects.length > 0) {
@@ -269,6 +364,62 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleEditFieldBlur = (fieldName) => {
+    setEditTouched(prev => ({ ...prev, [fieldName]: true }));
+  };
+
+  const handleAssignmentFieldBlur = (fieldName) => {
+    setAssignmentTouched(prev => ({ ...prev, [fieldName]: true }));
+  };
+
+  const handleEditProfile = () => {
+    setEditName(profile.name);
+    setEditEmail(profile.email);
+    setEditDepartmentId(profile.department?.id || '');
+    setEditSemesterId(profile.semester?.id || '');
+    setEditSubjectIds(profile.subjects?.map(s => s.id) || []);
+    setEditRollNumber(profile.rollNumber || '');
+    setEditValidationErrors({});
+    setEditTouched({});
+    setEditOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    // Mark all fields as touched
+    setEditTouched({
+      name: true,
+      rollNumber: true,
+      department: true,
+      semester: true,
+      subjects: true
+    });
+    
+    // Check if form is valid
+    if (!isEditFormValid) {
+      setEditError('Please fix the validation errors before submitting');
+      return;
+    }
+    
+    setSaving(true);
+    setEditError('');
+    try {
+      const res = await axios.patch(`/student/${studentId}/profile`, {
+        name: editName,
+        rollNumber: editRollNumber,
+        departmentId: editDepartmentId,
+        semesterId: editSemesterId,
+        subjectIds: editSubjectIds.map(Number), // ensure numbers
+      });
+      setProfile(res.data);
+      setEditSuccess(true);
+      setEditOpen(false);
+    } catch (err) {
+      setEditError(err.response?.data?.error || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
@@ -277,16 +428,7 @@ export default function StudentDashboard() {
             <Accordion defaultExpanded sx={{ mb: 3 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>Student Profile</Typography>
-                <Button variant="outlined" size="small" sx={{ ml: 2 }} onClick={e => {
-                  setEditName(profile.name);
-                  setEditEmail(profile.email);
-                  setEditDepartmentId(profile.department?.id || '');
-                  setEditSemesterId(profile.semester?.id || '');
-                  setEditSubjectIds(profile.subjects?.map(s => s.id) || []);
-                  setEditRollNumber(profile.rollNumber || '');
-                  setEditOpen(true);
-                  e.stopPropagation();
-                }}>Edit Profile</Button>
+                <Button variant="outlined" size="small" sx={{ ml: 2 }} onClick={handleEditProfile}>Edit Profile</Button>
               </AccordionSummary>
               <AccordionDetails>
                 <TableContainer component={Paper} sx={{ mt: 2 }}>
@@ -561,6 +703,9 @@ export default function StudentDashboard() {
               fullWidth
               value={editName}
               onChange={e => setEditName(e.target.value)}
+              onBlur={() => handleEditFieldBlur('name')}
+              error={editTouched.name && editValidationErrors.name}
+              helperText={editTouched.name && editValidationErrors.name}
             />
             <TextField
               margin="normal"
@@ -575,48 +720,64 @@ export default function StudentDashboard() {
               fullWidth
               value={editRollNumber}
               onChange={e => setEditRollNumber(e.target.value)}
+              onBlur={() => handleEditFieldBlur('rollNumber')}
+              error={editTouched.rollNumber && editValidationErrors.rollNumber}
+              helperText={editTouched.rollNumber && editValidationErrors.rollNumber}
             />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Department</InputLabel>
-              <Select
-                value={editDepartmentId}
-                onChange={e => setEditDepartmentId(e.target.value)}
-                input={<OutlinedInput label="Department" />}
-              >
+                          <FormControl fullWidth margin="normal" error={editTouched.department && !!editValidationErrors.department}>
+                <InputLabel>Department</InputLabel>
+                <Select
+                  value={editDepartmentId}
+                  onChange={e => setEditDepartmentId(e.target.value)}
+                  input={<OutlinedInput label="Department" />}
+                  onBlur={() => handleEditFieldBlur('department')}
+                >
                 {departments.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
+              {editTouched.department && editValidationErrors.department && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {editValidationErrors.department}
+                </Typography>
+              )}
             </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Semester</InputLabel>
-              <Select
-                value={editSemesterId}
-                onChange={e => {
-                  setEditSemesterId(e.target.value);
-                  setEditSubjectIds([]); // Clear selected subjects when semester changes
-                }}
-                input={<OutlinedInput label="Semester" />}
-              >
+                          <FormControl fullWidth margin="normal" error={editTouched.semester && !!editValidationErrors.semester}>
+                <InputLabel>Semester</InputLabel>
+                <Select
+                  value={editSemesterId}
+                  onChange={e => {
+                    setEditSemesterId(e.target.value);
+                    setEditSubjectIds([]); // Clear selected subjects when semester changes
+                  }}
+                  input={<OutlinedInput label="Semester" />}
+                  onBlur={() => handleEditFieldBlur('semester')}
+                >
                 {semesters.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
+              {editTouched.semester && editValidationErrors.semester && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {editValidationErrors.semester}
+                </Typography>
+              )}
             </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Subjects</InputLabel>
-              <Select
-                multiple
-                value={editSubjectIds}
-                onChange={e => {
-                  // Always store as array of numbers
-                  const value = e.target.value;
-                  setEditSubjectIds(Array.isArray(value) ? value.map(Number) : []);
-                }}
-                input={<OutlinedInput label="Subjects" />}
-                renderValue={selected => editSubjects.filter(s => selected.includes(s.id)).map(s => s.name).join(', ')}
-                disabled={editSubjects.length === 0}
-              >
+                          <FormControl fullWidth margin="normal" error={editTouched.subjects && !!editValidationErrors.subjects}>
+                <InputLabel>Subjects</InputLabel>
+                <Select
+                  multiple
+                  value={editSubjectIds}
+                  onChange={e => {
+                    // Always store as array of numbers
+                    const value = e.target.value;
+                    setEditSubjectIds(Array.isArray(value) ? value.map(Number) : []);
+                  }}
+                  input={<OutlinedInput label="Subjects" />}
+                  renderValue={selected => editSubjects.filter(s => selected.includes(s.id)).map(s => s.name).join(', ')}
+                  disabled={editSubjects.length === 0}
+                  onBlur={() => handleEditFieldBlur('subjects')}
+                >
                 {editSubjects.map(option => (
                   <MenuItem key={option.id} value={option.id}>
                     <Checkbox checked={editSubjectIds.indexOf(option.id) > -1} />
@@ -624,30 +785,16 @@ export default function StudentDashboard() {
                   </MenuItem>
                 ))}
               </Select>
+              {editTouched.subjects && editValidationErrors.subjects && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {editValidationErrors.subjects}
+                </Typography>
+              )}
             </FormControl>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={async () => {
-              setSaving(true);
-              setEditError('');
-              try {
-                const res = await axios.patch(`/student/${studentId}/profile`, {
-                  name: editName,
-                  rollNumber: editRollNumber,
-                  departmentId: editDepartmentId,
-                  semesterId: editSemesterId,
-                  subjectIds: editSubjectIds.map(Number), // ensure numbers
-                });
-                setProfile(res.data);
-                setEditSuccess(true);
-                setEditOpen(false);
-              } catch (err) {
-                setEditError(err.response?.data?.error || 'Failed to update profile');
-              } finally {
-                setSaving(false);
-              }
-            }} disabled={saving}>
+            <Button variant="contained" onClick={handleSaveProfile} disabled={saving}>
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </DialogActions>
@@ -669,28 +816,45 @@ export default function StudentDashboard() {
               fullWidth
               value={assignmentFormData.title}
               onChange={e => setAssignmentFormData({...assignmentFormData, title: e.target.value})}
+              onBlur={() => handleAssignmentFieldBlur('title')}
+              error={assignmentTouched.title && assignmentValidationErrors.title}
+              helperText={assignmentTouched.title && assignmentValidationErrors.title}
             />
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" error={assignmentTouched.subjectId && !!assignmentValidationErrors.subjectId}>
               <InputLabel>Subject</InputLabel>
               <Select
                 value={assignmentFormData.subjectId}
                 onChange={e => setAssignmentFormData({...assignmentFormData, subjectId: e.target.value})}
                 input={<OutlinedInput label="Subject" />}
+                onBlur={() => handleAssignmentFieldBlur('subjectId')}
               >
                 {profile?.subjects?.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
+              {assignmentTouched.subjectId && assignmentValidationErrors.subjectId && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {assignmentValidationErrors.subjectId}
+                </Typography>
+              )}
             </FormControl>
             <input
               type="file"
               accept=".pdf,.doc,.docx,.txt"
-              onChange={e => setAssignmentFormData({...assignmentFormData, file: e.target.files[0]})}
+              onChange={e => {
+                setAssignmentFormData({...assignmentFormData, file: e.target.files[0]});
+                setAssignmentTouched(prev => ({ ...prev, file: true }));
+              }}
               style={{ marginTop: '16px', marginBottom: '8px' }}
             />
             {assignmentFormData.file && (
               <Typography variant="body2" color="textSecondary">
                 Selected file: {assignmentFormData.file.name}
+              </Typography>
+            )}
+            {assignmentTouched.file && assignmentValidationErrors.file && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                {assignmentValidationErrors.file}
               </Typography>
             )}
           </DialogContent>
@@ -699,7 +863,7 @@ export default function StudentDashboard() {
             <Button 
               variant="contained" 
               onClick={handleAssignmentSubmit} 
-              disabled={assignmentSaving}
+              disabled={assignmentSaving || !isAssignmentFormValid}
             >
               {assignmentSaving ? 'Saving...' : (assignmentEditMode ? 'Update' : 'Submit')}
             </Button>

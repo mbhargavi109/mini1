@@ -37,13 +37,45 @@ router.post('/register', async (req, res) => {
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
+    
+    // Validate required fields
+    if (!email || !password || !role) {
+      return res.status(400).json({ message: 'Email, password, and role are required' });
+    }
+    
+    // Validate role
+    if (!['student', 'teacher'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be student or teacher' });
+    }
+    
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    // Validate that user's actual role matches the requested role
+    if (user.role !== role) {
+      return res.status(403).json({ 
+        message: `Access denied. This account is registered as a ${user.role}, not a ${role}` 
+      });
+    }
+    
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role 
+      } 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
